@@ -111,12 +111,15 @@ builtins = {
     ':': lambda f: f.parse_until(';', defun),
     'if': lambda f: if_statement(f),
 
+    'chr': lambda f: f.foo(chr, 1),
+    'ord': lambda f: f.foo(ord, 1),
+
     # Comparison operators.
     '=': lambda f: f.foo(operator.eq, 2),
     '<': lambda f: f.foo(operator.lt, 2),
     '>': lambda f: f.foo(operator.gt, 2),
-    '<=': lambda f: f.foo(operator.leq, 2),
-    '>=': lambda f: f.foo(operator.geq, 2),
+    '<=': lambda f: f.foo(operator.le, 2),
+    '>=': lambda f: f.foo(operator.ge, 2),
 
     # Arithmetic and logical operators.
     '+': lambda f: f.foo(operator.add, 2),
