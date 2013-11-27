@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
+import operator
 
 
 class Forth(object):
 
     def __init__(self):
         self.stack = []
+        self.env = builtins
         self.delimiter = None
 
     def push(self, word):
@@ -22,8 +24,13 @@ class Forth(object):
             self.args.append(word)
 
         # Apply builtin functions.
-        elif word in builtins:
-            builtins[word](self)
+        elif word in self.env:
+            func = builtins[word]
+            if isinstance(func, list):
+                for word in func:
+                    self.push(word)
+            else:
+                builtins[word](self)
 
         # Anything else is assumed to be a base 10 integer.
         else:
@@ -41,15 +48,80 @@ class Forth(object):
         if self.delimiter == '\n':
             self.delimiter = None
 
+    def foo(self, func, nargs):
+        '''Apply a python function to the top nargs items on the stack,
+           and place the result back on the stack.
+        '''
+        args = [self.stack.pop() for i in range(nargs)]
+        self.stack.append(func(*reversed(args)))
+
+
+def dup(f):
+    '''( a -- a a )'''
+    a = f.stack.pop()
+    f.stack.append(a)
+    f.stack.append(a)
+
+def swap(f):
+    '''( a b -- b a)'''
+    b = f.stack.pop()
+    a = f.stack.pop()
+    f.stack.append(b)
+    f.stack.append(a)
+
+def over(f):
+    '''( a b -- a b a)'''
+    b = f.stack.pop()
+    a = f.stack.pop()
+    f.stack.append(a)
+    f.stack.append(b)
+    f.stack.append(a)
+
 builtins = {
     '(': lambda f: f.parse_until(')'),
     '\\': lambda f: f.parse_until('\n'),
     '.': lambda f: print(f.stack.pop()),
+    '.s': lambda f: print(f.stack),
+
+    # Arithmetic and logical operators.
+    '+': lambda f: f.foo(operator.add, 2),
+    '-': lambda f: f.foo(operator.sub, 2),
+    '*': lambda f: f.foo(operator.mul, 2),
+    '/': lambda f: f.foo(operator.floordiv, 2),
+    'mod': lambda f: f.foo(operator.mod, 2),
+    #'/mod': lambda f: f.foo(operator.divmod, 2),
+    'and': lambda f: f.foo(operator.and_, 2),
+    'or': lambda f: f.foo(operator.or_, 2),
+    'xor': lambda f: f.foo(operator.xor, 2),
+    'lshift': lambda f: f.foo(operator.lshift, 2),
+    '<<': lambda f: f.foo(operator.lshift, 2),
+    'rshift': lambda f: f.foo(operator.rshift, 2),
+    '>>': lambda f: f.foo(operator.rshift, 2),
+    'abs': lambda f: f.foo(abs, 1),
+    'max': lambda f: f.foo(max, 2),
+    'min': lambda f: f.foo(min, 2),
+    'invert': lambda f: f.foo(operator.inv, 1),
+    'negate': lambda f: f.foo(operator.neg, 1),
+    '1-': list('1-'),
+    '1+': list('2+'),
+    '2/': list('2/'),
+    '2*': list('2*'),
+
+    # Stack operators.
+    'dup': lambda f: dup(f),
+    '?dup': 'dup if dup then'.split(),
+    'drop': lambda f: f.stack.pop(),
+    'swap': lambda f: swap(f),
+    'over': lambda f: over(f),
+    'rot': lambda f: rot(f),
+    '-rot': 'rot rot'.split(),
+    'nip': 'swap drop'.split(),
+    'tuck': 'swap over'.split(),
 }
 
 
 
-def prompt(ps1='>>> '):
+def prompt(ps1=' ok '):
     sys.stdout.write(ps1)
     sys.stdout.flush()
 
