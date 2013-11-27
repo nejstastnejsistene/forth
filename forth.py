@@ -103,12 +103,20 @@ def over(f):
 builtins = {
     '(': lambda f: f.parse_until(')'),
     '\\': lambda f: f.parse_until('\n'),
-    '.': lambda f: print(f.stack.pop()),
+    ',': lambda f: f.foo(lambda: sys.stdin.read(1) or 0, 0),
+    '.': lambda f: sys.stdout.write(str(f.stack.pop())),
     'showstack': lambda f: f.showstack(True),
     'noshowstack': lambda f:f.showstack(False),
     '.s': lambda f: print(f.stack),
     ':': lambda f: f.parse_until(';', defun),
     'if': lambda f: if_statement(f),
+
+    # Comparison operators.
+    '=': lambda f: f.foo(operator.eq, 2),
+    '<': lambda f: f.foo(operator.lt, 2),
+    '>': lambda f: f.foo(operator.gt, 2),
+    '<=': lambda f: f.foo(operator.leq, 2),
+    '>=': lambda f: f.foo(operator.geq, 2),
 
     # Arithmetic and logical operators.
     '+': lambda f: f.foo(operator.add, 2),
@@ -153,20 +161,28 @@ def prompt(ps1=' ok '):
     sys.stdout.flush()
 
 
-forth = Forth()
-
-prompt()
-word = ''
-while True:
-    ch = sys.stdin.read(1)
-    if not ch or ch.isspace():
-        if word:
-            forth.push(word)
-            word = ''
-        if not ch:
-            break
-        if ch == '\n':
-            forth.clear()
-            prompt()
+if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        f = open(sys.argv[1])
+        ps1 = ''
     else:
-        word += ch
+        f = sys.stdin
+        ps1 = ' ok '
+
+    forth = Forth()
+
+    prompt(ps1)
+    word = ''
+    while True:
+        ch = f.read(1)
+        if not ch or ch.isspace():
+            if word:
+                forth.push(word)
+                word = ''
+            if not ch:
+                break
+            if ch == '\n':
+                forth.clear()
+                prompt(ps1)
+        else:
+            word += ch
