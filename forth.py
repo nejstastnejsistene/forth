@@ -28,8 +28,7 @@ class Forth(object):
         elif word in self.env:
             func = builtins[word]
             if isinstance(func, list):
-                for word in func:
-                    self.push(word)
+                self.exec(func)
             else:
                 builtins[word](self)
 
@@ -37,6 +36,10 @@ class Forth(object):
         else:
             self.stack.append(int(word))
 
+
+    def exec(self, words):
+        for word in words:
+            self.push(word)
 
     def parse_until(self, word, action=lambda f: None):
         '''Set a delimiter, and a function to apply to parsed wordsi.'''
@@ -68,6 +71,14 @@ def defun(f):
     body = f.args[1:]
     f.env[name] = body
 
+def if_statement(f):
+    def handle_then(f):
+        f.exec(f.args)
+        f.parse_until('else')
+    def handle_else(f):
+        f.parse_until('else', lambda f: f.exec(f.args))
+    f.parse_until('then', handle_then if f.stack.pop() else handle_else)
+
 def dup(f):
     '''( a -- a a )'''
     a = f.stack.pop()
@@ -97,6 +108,7 @@ builtins = {
     'noshowstack': lambda f:f.showstack(False),
     '.s': lambda f: print(f.stack),
     ':': lambda f: f.parse_until(';', defun),
+    'if': lambda f: if_statement(f),
 
     # Arithmetic and logical operators.
     '+': lambda f: f.foo(operator.add, 2),
