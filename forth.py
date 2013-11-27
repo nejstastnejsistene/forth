@@ -9,6 +9,7 @@ class Forth(object):
     def __init__(self):
         self.stack = []
         self.env = builtins
+        self._showstack = False
         self.delimiter = None
 
     def push(self, word):
@@ -44,9 +45,14 @@ class Forth(object):
         self.action= action
 
     def clear(self):
-        '''Clear end of line comments.'''
+        '''Clear end of line comments, and optionally print the stack.'''
         if self.delimiter == '\n':
             self.delimiter = None
+        if self._showstack:
+            print(self.stack)
+
+    def showstack(self, show):
+        self._showstack = show
 
     def foo(self, func, nargs):
         '''Apply a python function to the top nargs items on the stack,
@@ -55,6 +61,12 @@ class Forth(object):
         args = [self.stack.pop() for i in range(nargs)]
         self.stack.append(func(*reversed(args)))
 
+
+def defun(f):
+    '''Define a function.'''
+    name = f.args[0]
+    body = f.args[1:]
+    f.env[name] = body
 
 def dup(f):
     '''( a -- a a )'''
@@ -81,7 +93,10 @@ builtins = {
     '(': lambda f: f.parse_until(')'),
     '\\': lambda f: f.parse_until('\n'),
     '.': lambda f: print(f.stack.pop()),
+    'showstack': lambda f: f.showstack(True),
+    'noshowstack': lambda f:f.showstack(False),
     '.s': lambda f: print(f.stack),
+    ':': lambda f: f.parse_until(';', defun),
 
     # Arithmetic and logical operators.
     '+': lambda f: f.foo(operator.add, 2),
